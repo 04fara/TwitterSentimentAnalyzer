@@ -1,0 +1,29 @@
+import java.util.Properties
+import edu.stanford.nlp.pipeline.StanfordCoreNLP
+import edu.stanford.nlp.simple.Sentence
+import org.apache.spark.ml.feature.StopWordsRemover
+
+object Utils {
+  @transient private var sentimentPipeline: StanfordCoreNLP = _
+
+  def getOrCreateSentimentPipeline(): StanfordCoreNLP = {
+    if (sentimentPipeline == null) {
+      val props = new Properties()
+      props.setProperty("annotators", "tokenize, ssplit, parse, sentiment")
+      sentimentPipeline = new StanfordCoreNLP(props)
+    }
+    sentimentPipeline
+  }
+
+  val remover: StopWordsRemover = new StopWordsRemover()
+    .setInputCol("_2")
+    .setOutputCol("preprocessed")
+
+  def tweetPreprocessing(text: String): Seq[String] = {
+    val tokenized = new Sentence(text).words()
+    import scala.collection.JavaConverters._
+    new Sentence(tokenized).lemmas().asScala
+      .filterNot(",.!?:;" contains _)
+      .map(_.toLowerCase)
+  }
+}
